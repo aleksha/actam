@@ -19,9 +19,6 @@ ONEDetectorConstruction::ONEDetectorConstruction()
 {
 
   ConfigFile.open("CONFIG.txt", std::ios::in);
-//  int PID;
-//  double T_R, THETA_R;
-//  ConfigFile >> PRESSURE >> PID >> T_R >> THETA_R;
   ConfigFile >> PRESSURE ;
   ConfigFile.close();
 
@@ -36,12 +33,7 @@ G4VPhysicalVolume* ONEDetectorConstruction::Construct()
 
 
   G4Material* w_mat = nist->FindOrBuildMaterial("G4_Galactic");
-  G4Material *ArGas   = new G4Material("ArGas"  , 18, 39.948*g/mole, PRESSURE*1.784*kg/m3 );     // <=====
-
-
-  // Layer (LV) geometrical parameters
-  G4double R_xy  =  50.000*mm;
-  G4double l00_z = 100.000*mm;
+  G4Material *ArGas   = new G4Material("ArGas"  , 18, 39.948*g/mole, PRESSURE*1.784*kg/m3 );
 
   // World
   G4double w_xy = 200.0*mm;
@@ -51,9 +43,11 @@ G4VPhysicalVolume* ONEDetectorConstruction::Construct()
   G4LogicalVolume* logicWorld = new G4LogicalVolume(solidWorld, w_mat, "World");
 
   // LVs
+
+  // Layer (LV) geometrical parameters
+  G4double R_xy  =  50.000*mm;
+  G4double l00_z = 100.000*mm;
   G4Tubs* solidLV00 =  new G4Tubs("LV00", 0.*mm, R_xy, 0.5*l00_z, 0.*deg, 360.*deg);
-
-
 
   G4LogicalVolume* logicLV00 = new G4LogicalVolume(solidLV00, ArGas , "LV00");
 

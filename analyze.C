@@ -26,9 +26,9 @@ void findTPCtracks(){
   TH1F* h2 = new TH1F("h2"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
   TH1F* h3 = new TH1F("h3"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
 
-  TH1F* hE1 = new TH1F("hE1"," ; energy, a.u.;entries",  50, 0., 5 );
-  TH1F* hE2 = new TH1F("hE2"," ; energy, a.u.;entries",  50, 0., 5 );
-  TH1F* hE3 = new TH1F("hE3"," ; energy, a.u.;entries",  50, 0., 5 );
+  TH1F* hE1 = new TH1F("hE1"," ; energy, a.u.;entries",  50, 0.1, 5.1 );
+  TH1F* hE2 = new TH1F("hE2"," ; energy, a.u.;entries",  50, 0.1, 5.1 );
+  TH1F* hE3 = new TH1F("hE3"," ; energy, a.u.;entries",  50, 0.1, 5.1 );
 
 
   h1->SetMinimum(0);

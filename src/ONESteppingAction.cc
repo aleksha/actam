@@ -77,8 +77,8 @@ void ONESteppingAction::UserSteppingAction(const G4Step* step)
 //    double g_time =  0.5 * (g_pre_time + g_post_time);
 
     if( myOUT.is_open() && vol==0 && tr_ed>0 )
-       myOUT << ev_id  << " " << tr_id << " " << p_code<< " "
-             << tr_ed  << " " << tr_x  << " " << tr_y  << " " << tr_z
+       myOUT << ev_id  << " " << tr_id << " " << p_code << " "
+             << tr_ed  << " " << tr_x  << " " << tr_y   << " " << tr_z
              << G4endl;
 
  }

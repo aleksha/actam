@@ -19,10 +19,10 @@ ONEPrimaryGeneratorAction::ONEPrimaryGeneratorAction()
 
   ConfigFile.open("CONFIG.txt", std::ios::in);
   double PRESSURE;
-  double D2R = 3.14159265/180.;
   ConfigFile >> PRESSURE >> PID >> T_R_MIN >> T_R_MAX >> THETA_R_MIN >> THETA_R_MAX >> VX >> VY>> VZ;
   ConfigFile.close();
 
+  double D2R = 3.14159265/180.;
   THETA_R_MIN = THETA_R_MIN*D2R;
   THETA_R_MAX = THETA_R_MAX*D2R;
 
@@ -58,7 +58,7 @@ void ONEPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   THETA_R = THETA_R_MIN + G4UniformRand()*( THETA_R_MAX - THETA_R_MIN  );
   T_R     = T_R_MIN     + G4UniformRand()*( T_R_MAX     - T_R_MIN      );
   fParticleGun->SetParticleEnergy(T_R*MeV);
-  fParticleGun->SetParticleMomentumDirection( G4ThreeVector( 0.,std::sin(THETA_R),std::cos(THETA_R) ) );                     // <========
+  fParticleGun->SetParticleMomentumDirection( G4ThreeVector( 0.,std::sin(THETA_R),std::cos(THETA_R) ) );
   fParticleGun->SetParticlePosition( G4ThreeVector(VX*mm,VY*mm,VZ*mm) );
   fParticleGun->GeneratePrimaryVertex(anEvent);
 }

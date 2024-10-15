@@ -47,6 +47,7 @@ set(ONE_SCRIPTS
   README.md
   Run_Geant.sh
   run.mac
+  twoD.C
   view.C
   )
 
