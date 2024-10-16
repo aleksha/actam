@@ -43,6 +43,8 @@ target_link_libraries(exec_ONE ${Geant4_LIBRARIES})
 #
 set(ONE_SCRIPTS
   analyze.C
+  analyze2.C
+  CONFIG.beam.txt
   CONFIG.txt
   README.md
   Run_Geant.sh

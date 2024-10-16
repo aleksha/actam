@@ -41,10 +41,10 @@ ONEPrimaryGeneratorAction::ONEPrimaryGeneratorAction()
   if(PID==3)         particle = particleTable->FindParticle( particleName="He3"     );
   if(PID==4)         particle = particleTable->FindParticle( particleName="alpha"   );
   if(PID==11)        particle = particleTable->FindParticle( particleName="e-"      );
-  if(PID==12)        particle = particleTable->FindParticle( particleName="mu-"     );
+  if(PID==13)        particle = particleTable->FindParticle( particleName="mu-"     );
   if(PID==22)        particle = particleTable->FindParticle( particleName="gamma"   );
   if(PID==-11)       particle = particleTable->FindParticle( particleName="e+"      );
-  if(PID==-12)       particle = particleTable->FindParticle( particleName="mu+"     );
+  if(PID==-13)       particle = particleTable->FindParticle( particleName="mu+"     );
 
   fParticleGun->SetParticleDefinition(particle);
 

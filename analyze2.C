@@ -17,7 +17,13 @@
 
 void findTPCtracks(){
 
-  int process_ev = 999;
+  TRandom *rE = new TRandom();
+
+//  double tau = 500.; // 2.0 MHz
+//  double tau = 10000.; // 0.1 MHz
+  double tau = 1000.; // 1.0 MHz
+
+  int process_ev = 10;
   int EVENT = 0;
 
   double startTPC = 0. ;
@@ -25,6 +31,15 @@ void findTPCtracks(){
   TH1F* h1 = new TH1F("h1"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
   TH1F* h2 = new TH1F("h2"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
   TH1F* h3 = new TH1F("h3"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
+
+  TH1F* h1p;
+  TH1F* h2p;
+  TH1F* h3p;
+
+
+  TH1F* hE1 = new TH1F("hE1"," ; energy, a.u.;entries",  100, 0.1, 10.1 );
+  TH1F* hE2 = new TH1F("hE2"," ; energy, a.u.;entries",  100, 0.1, 10.1 );
+  TH1F* hE3 = new TH1F("hE3"," ; energy, a.u.;entries",  100, 0.1, 10.1 );
 
   h1->SetMinimum(0);
   h2->SetMinimum(0);
@@ -70,20 +85,98 @@ void findTPCtracks(){
 //==============================================================================
 
   std::ifstream frTPC("./out.data"      , std::ios::in);
+  std::ifstream fBEAM("./out.data.beam" , std::ios::in);
 
   int n_ev = 0;
   float E_step = 0.001;
   int n_steps;
 
+  float beam_offset = -100000.;
+  int beam_ev=0;
+
   ev = 0;
-  while(ev<EVENT+1){
+
+  int ev_b;
+  float xib,yib,zib,tib;
+  float xfb,yfb,zfb,tfb,ed_b;
+  int tr_b,code_b;
+
+  fBEAM >> ev_b >> tr_b >> code_b >> ed_b >> xib >> yib >> zib >> tib  >> xfb >> yfb >> zfb >> tfb;
+
+  while(n_ev<process_ev){
 
     frTPC >> ev >> tr >> code >> ed >> xi >> yi >> zi >> ti  >> xf >> yf >> zf >> tf;
 
-    if(ev==EVENT){
+    if(ev!=EVENT){
+      if( !(n_ev%1) ) std::cout << n_ev << " event processed\n" ;
+      n_ev++;
+
+
+      while(beam_offset<100000){
+
+        while(beam_ev==ev_b){
+
+          n_steps = int(ed_b/E_step)+1;
+          for(int step=0; step < n_steps; step++){
+
+            x = xib + (xfb-xib)*(0.5+step)/n_steps;
+            y = yib + (yfb-yib)*(0.5+step)/n_steps;
+            z = zib + (zfb-zib)*(0.5+step)/n_steps;
+            t = tib + (tfb-tib)*(0.5+step)/n_steps;
+
+            t_anod = 0.1*( beam_offset + startTPC + (z-z_anod) / W1 + 3./W2 );
+            tt = 2;
+            ll = x*x+y*y;
+
+            if(ll<10.*10.){
+              for(int iii = 0 ; iii<125; iii++  ){
+                h1->Fill( t_anod + tt, E_step*Digi[iii] );
+                tt = tt + 4 ;
+              }
+            }
+
+            if(ll>=10.*10. && ll<30.*30.){
+              for(int iii = 0 ; iii<125; iii++  ){
+                h2->Fill( t_anod + tt, E_step*Digi[iii] );
+                tt = tt + 4 ;
+              }
+            }
+
+            if(ll>=30.*30.){
+              for(int iii = 0 ; iii<125; iii++  ){
+                h3->Fill( t_anod + tt, E_step*Digi[iii] );
+                tt = tt + 4 ;
+              }
+            }
+
+          }
+
+          fBEAM >> ev_b >> tr_b >> code_b >> ed_b >> xib >> yib >> zib >> tib  >> xfb >> yfb >> zfb >> tfb;
+        }
+
+        beam_offset += rE->Exp( tau );
+        beam_ev = ev_b;
+
+      }
+
+      beam_offset = -100000.;
+
+      hE1->Fill( h1->Integral() );
+      hE2->Fill( h2->Integral() );
+      hE3->Fill( h3->Integral() );
+
+//TH1F *hnew = (TH1F*)h->Clone("hnew");
+      h1p = (TH1F*)h1->Clone("h1p");
+      h2p = (TH1F*)h2->Clone("h2p");
+      h3p = (TH1F*)h3->Clone("h3p");
+
+      h1->Reset();
+      h2->Reset();
+      h3->Reset();
+      EVENT=ev;
+    }
 
     n_steps = int(ed/E_step)+1;
-
     for(int step=0; step < n_steps; step++){
 
       x = xi + (xf-xi)*(0.5+step)/n_steps;
@@ -115,20 +208,30 @@ void findTPCtracks(){
           tt = tt + 4 ;
         }
       }
-
-     }
-
     }
+
   }  frTPC.close();
+
+
+  double hMAX=0;
+  if(h1p->GetMaximum()>hMAX) hMAX = h1p->GetMaximum();
+  if(h2p->GetMaximum()>hMAX) hMAX = h2p->GetMaximum();
+  if(h3p->GetMaximum()>hMAX) hMAX = h3p->GetMaximum();
+
+  h1p->GetMaximum(hMAX);
+  h2p->GetMaximum(hMAX);
+  h3p->GetMaximum(hMAX);
+
+
 
   TCanvas* canv = new TCanvas("canv","canv",900,600);
   canv->Divide(1,3);
   canv->cd(1);
-  h1->Draw("hist");
+  h1p->Draw("hist");
   canv->cd(2);
-  h2->Draw("hist");
+  h2p->Draw("hist");
   canv->cd(3);
-  h3->Draw("hist");
+  h3p->Draw("hist");
 
   canv->Print("c.png");
 //  canv->Close();
@@ -140,7 +243,7 @@ void findTPCtracks(){
 
 
 
-void view(){
+void analyze2(){
 
 
   findTPCtracks();
