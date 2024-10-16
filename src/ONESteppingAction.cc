@@ -64,21 +64,22 @@ void ONESteppingAction::UserSteppingAction(const G4Step* step)
     double tr_post_x   = post_step->GetPosition().x() / mm ;
     double tr_post_y   = post_step->GetPosition().y() / mm ;
     double tr_post_z   = post_step->GetPosition().z() / mm ;
-//    double g_post_time = post_step->GetGlobalTime ()  / ns ;
+    double tr_post_t   = post_step->GetGlobalTime ()  / ns ;
 
     double tr_pre_x   = pre_step->GetPosition().x() / mm ;
     double tr_pre_y   = pre_step->GetPosition().y() / mm ;
     double tr_pre_z   = pre_step->GetPosition().z() / mm ;
-//    double g_pre_time = pre_step->GetGlobalTime ()  / ns ;
+    double tr_pre_t   = pre_step->GetGlobalTime ()  / ns ;
 
-    double tr_x   =  0.5 * (tr_pre_x + tr_post_x);
-    double tr_y   =  0.5 * (tr_pre_y + tr_post_y);
-    double tr_z   =  0.5 * (tr_pre_z + tr_post_z);
-//    double g_time =  0.5 * (g_pre_time + g_post_time);
+//    double tr_x   =  0.5 * (tr_pre_x + tr_post_x);
+//    double tr_y   =  0.5 * (tr_pre_y + tr_post_y);
+//    double tr_z   =  0.5 * (tr_pre_z + tr_post_z);
+//    double tr_t   =  0.5 * (tr_pre_t + tr_post_t);
 
     if( myOUT.is_open() && vol==0 && tr_ed>0 )
-       myOUT << ev_id  << " " << tr_id << " " << p_code << " "
-             << tr_ed  << " " << tr_x  << " " << tr_y   << " " << tr_z
+       myOUT << ev_id  << " " << tr_id << " " << p_code << " " << tr_ed
+             << " " << tr_pre_x  << " " << tr_pre_y  << " " << tr_pre_z  << " " << tr_pre_t
+             << " " << tr_post_x << " " << tr_post_y << " " << tr_post_z << " " << tr_post_t
              << G4endl;
 
  }
