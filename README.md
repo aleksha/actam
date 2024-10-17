@@ -10,9 +10,9 @@ TPC will be used for studies of the cluster emissin form nuclei and for other ot
 ## To-do list
 
  1. Anode structure optimization for recoil ID
- 2. Electronic noise
- 3. Beam noise
- 4. More realistic signal shape
+ 2. Electronic noise [done]
+ 3. Beam noise [done]
+ 4. More realistic signal shape [done]
 
 ## Parameters in CONFIG.txt
 
@@ -32,3 +32,10 @@ TPC will be used for studies of the cluster emissin form nuclei and for other ot
  * 11 - electron
  * 22 - gamma 
 
+## How-to simulate N events
+
+ 1. Simulate electron beam events (factor 1000 to N) with the code. Rename `out.data` to `out.data.beam`
+ 2. Simulate noise with `anode_noise_gen.py` from  https://github.com/aleksha/electronic-noise (factor 3 to N)
+ 3. Simalate recoil with same gas pressure as at the step 1.
+ 4. Build events (in progerss, currently `analyze2.C`).
+ 

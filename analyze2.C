@@ -14,6 +14,42 @@
 #include "TStyle.h"
 #include "TLatex.h"
 
+double Digi[125];
+
+double R1=10;
+double R2=30;
+double R3=50;
+
+TH1F *h1;
+TH1F *h2;
+TH1F *h3;
+
+void fillFADC(double E_step, double t_anod, double ll){
+
+  double tt=2.;
+
+  if(ll<R1*R1){
+    for(int iii = 0 ; iii<125; iii++  ){
+      h1->Fill( t_anod + tt , E_step*Digi[iii] );
+      tt = tt + 4 ;
+    }
+  }
+
+  if(ll>=R1*R1 && ll<R2*R2){
+    for(int iii = 0 ; iii<125; iii++  ){
+      h2->Fill( t_anod + tt, E_step*Digi[iii] );
+      tt = tt + 4 ;
+      }
+  }
+
+  if(ll>=R2*R2 && ll<R3*R3){
+    for(int iii = 0 ; iii<125; iii++  ){
+      h3->Fill( t_anod + tt, E_step*Digi[iii] );
+      tt = tt + 4 ;
+    }
+  }
+
+}
 
 void findTPCtracks(){
 
@@ -26,11 +62,11 @@ void findTPCtracks(){
   int process_ev = 10;
   int EVENT = 0;
 
-  double startTPC = 0. ;
+  double startTPC = 40000. ;
 
-  TH1F* h1 = new TH1F("h1"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
-  TH1F* h2 = new TH1F("h2"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
-  TH1F* h3 = new TH1F("h3"," ;time, 10*ns; energy, a.u.", 2550, 0., 4.*2550. );
+  h1 = new TH1F("h1"," ;time, 10*ns; energy, a.u.", 2692, 0., 4.*2692. );
+  h2 = new TH1F("h2"," ;time, 10*ns; energy, a.u.", 2692, 0., 4.*2692. );
+  h3 = new TH1F("h3"," ;time, 10*ns; energy, a.u.", 2692, 0., 4.*2692. );
 
   TH1F* h1p;
   TH1F* h2p;
@@ -41,9 +77,9 @@ void findTPCtracks(){
   TH1F* hE2 = new TH1F("hE2"," ; energy, a.u.;entries",  100, 0.1, 10.1 );
   TH1F* hE3 = new TH1F("hE3"," ; energy, a.u.;entries",  100, 0.1, 10.1 );
 
-  h1->SetMinimum(0);
-  h2->SetMinimum(0);
-  h3->SetMinimum(0);
+//  h1->SetMinimum(0);
+//  h2->SetMinimum(0);
+//  h3->SetMinimum(0);
 
   int    ev, tr ;
   long int code;
@@ -53,7 +89,6 @@ void findTPCtracks(){
   double xf,yf,zf,tf;
   double t_anod, tt, ll;
 
-  double Digi[125];
 
 
   double W1 = 2.0*0.001; // mm/ns
@@ -84,8 +119,9 @@ void findTPCtracks(){
 // loop on trigger event
 //==============================================================================
 
-  std::ifstream frTPC("./out.data"      , std::ios::in);
-  std::ifstream fBEAM("./out.data.beam" , std::ios::in);
+  std::ifstream frTPC( "./out.data"          , std::ios::in ); // signal from recoil
+  std::ifstream fBEAM( "./out.data.beam"     , std::ios::in ); // pile-up from the beam
+  std::ifstream fNOIS( "./noise_events.data" , std::ios::in ); // electronic noise
 
   int n_ev = 0;
   float E_step = 0.001;
@@ -100,6 +136,7 @@ void findTPCtracks(){
   float xib,yib,zib,tib;
   float xfb,yfb,zfb,tfb,ed_b;
   int tr_b,code_b;
+  float noise;
 
   fBEAM >> ev_b >> tr_b >> code_b >> ed_b >> xib >> yib >> zib >> tib  >> xfb >> yfb >> zfb >> tfb;
 
@@ -125,29 +162,9 @@ void findTPCtracks(){
             t = tib + (tfb-tib)*(0.5+step)/n_steps;
 
             t_anod = 0.1*( beam_offset + startTPC + (z-z_anod) / W1 + 3./W2 );
-            tt = 2;
             ll = x*x+y*y;
 
-            if(ll<10.*10.){
-              for(int iii = 0 ; iii<125; iii++  ){
-                h1->Fill( t_anod + tt, E_step*Digi[iii] );
-                tt = tt + 4 ;
-              }
-            }
-
-            if(ll>=10.*10. && ll<30.*30.){
-              for(int iii = 0 ; iii<125; iii++  ){
-                h2->Fill( t_anod + tt, E_step*Digi[iii] );
-                tt = tt + 4 ;
-              }
-            }
-
-            if(ll>=30.*30.){
-              for(int iii = 0 ; iii<125; iii++  ){
-                h3->Fill( t_anod + tt, E_step*Digi[iii] );
-                tt = tt + 4 ;
-              }
-            }
+            fillFADC(E_step, t_anod, ll);
 
           }
 
@@ -160,6 +177,25 @@ void findTPCtracks(){
       }
 
       beam_offset = -100000.;
+
+
+
+      for(int ch=0;ch<2692;ch++){
+        fNOIS >> noise;
+        h1->SetBinContent( ch+1, 27.5*0.001*0.001*noise+h1->GetBinContent(ch+1) );
+      }
+
+      for(int ch=0;ch<2692;ch++){
+        fNOIS >> noise;
+        h2->SetBinContent( ch+1, 27.5*0.001*0.001*noise+h2->GetBinContent(ch+1) );
+      }
+
+      for(int ch=0;ch<2692;ch++){
+        fNOIS >> noise;
+        h3->SetBinContent( ch+1, 27.5*0.001*0.001*noise+h3->GetBinContent(ch+1) );
+      }
+
+
 
       hE1->Fill( h1->Integral() );
       hE2->Fill( h2->Integral() );
@@ -185,29 +221,10 @@ void findTPCtracks(){
       t = ti + (tf-ti)*(0.5+step)/n_steps;
 
       t_anod = 0.1*( startTPC + (z-z_anod) / W1 + 3./W2 );
-      tt = 2;
       ll = x*x+y*y;
 
-      if(ll<10.*10.){
-        for(int iii = 0 ; iii<125; iii++  ){
-          h1->Fill( t_anod + tt, E_step*Digi[iii] );
-          tt = tt + 4 ;
-        }
-      }
+      fillFADC(E_step, t_anod, ll);
 
-      if(ll>=10.*10. && ll<30.*30.){
-        for(int iii = 0 ; iii<125; iii++  ){
-          h2->Fill( t_anod + tt, E_step*Digi[iii] );
-          tt = tt + 4 ;
-        }
-      }
-
-      if(ll>=30.*30.){
-        for(int iii = 0 ; iii<125; iii++  ){
-          h3->Fill( t_anod + tt, E_step*Digi[iii] );
-          tt = tt + 4 ;
-        }
-      }
     }
 
   }  frTPC.close();
@@ -218,9 +235,20 @@ void findTPCtracks(){
   if(h2p->GetMaximum()>hMAX) hMAX = h2p->GetMaximum();
   if(h3p->GetMaximum()>hMAX) hMAX = h3p->GetMaximum();
 
-  h1p->GetMaximum(hMAX);
-  h2p->GetMaximum(hMAX);
-  h3p->GetMaximum(hMAX);
+  hMAX = hMAX*1.05;
+  h1p->SetMaximum(hMAX);
+  h2p->SetMaximum(hMAX);
+  h3p->SetMaximum(hMAX);
+
+  double hMIX=0;
+  if(h1p->GetMinimum()<hMIX) hMIX = h1p->GetMinimum();
+  if(h2p->GetMinimum()<hMIX) hMIX = h2p->GetMinimum();
+  if(h3p->GetMinimum()<hMIX) hMIX = h3p->GetMinimum();
+
+  hMIX = hMIX*1.05;
+  h1p->SetMinimum(hMIX);
+  h2p->SetMinimum(hMIX);
+  h3p->SetMinimum(hMIX);
 
 
 
