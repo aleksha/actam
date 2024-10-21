@@ -28,6 +28,8 @@ class ONEPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     G4ParticleGun*  fParticleGun; // pointer a to G4 gun class
 
     std::ifstream    ConfigFile ;
+    std::ofstream    GenFile    ;
+    int              EV_ID      ;
     int              PID        ;
     double           T_R        ;
     double           T_R_MIN    ;

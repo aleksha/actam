@@ -17,6 +17,9 @@ ONEPrimaryGeneratorAction::ONEPrimaryGeneratorAction()
   fParticleGun(0)
 {
 
+  GenFile   .open( "gen.data" , std::ios::trunc);
+  EV_ID=0;
+
   ConfigFile.open("CONFIG.txt", std::ios::in);
   double PRESSURE;
   ConfigFile >> PRESSURE >> PID >> T_R_MIN >> T_R_MAX >> THETA_R_MIN >> THETA_R_MAX >> VX >> VY>> VZ;
@@ -50,7 +53,10 @@ ONEPrimaryGeneratorAction::ONEPrimaryGeneratorAction()
 
 }
 //------------------------------------------------------------------------------
-ONEPrimaryGeneratorAction::~ONEPrimaryGeneratorAction(){ delete fParticleGun; }
+ONEPrimaryGeneratorAction::~ONEPrimaryGeneratorAction(){ 
+  delete fParticleGun;
+  GenFile.close();
+}
 //------------------------------------------------------------------------------
 void ONEPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
@@ -61,6 +67,10 @@ void ONEPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   fParticleGun->SetParticleMomentumDirection( G4ThreeVector( 0.,std::sin(THETA_R),std::cos(THETA_R) ) );
   fParticleGun->SetParticlePosition( G4ThreeVector(VX*mm,VY*mm,VZ*mm) );
   fParticleGun->GeneratePrimaryVertex(anEvent);
+  GenFile << EV_ID << " " << PID << " " << T_R << " " << THETA_R
+                   << " " << VX  << " " << VY  << " " << VZ << "\n";
+
+  EV_ID++;
 }
 //------------------------------------------------------------------------------
 

@@ -46,6 +46,8 @@ set(ONE_SCRIPTS
   analyze2.C
   CONFIG.beam.txt
   CONFIG.txt
+  event_builder.C
+  look.C
   README.md
   Run_Geant.sh
   run.mac
