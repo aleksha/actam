@@ -23,7 +23,7 @@ TString FILENAME = "mc_fadc.root";
 //  double tau = 500.; // 2.0 MHz
 //  double tau = 10000.; // 0.1 MHz
 double TAU = 1000.; // 1.0 MHz
-int PROCESS_EV = 100;
+int PROCESS_EV = 500;
 int EVERY      = 10;
 
 double R1=10; // mm
@@ -71,6 +71,195 @@ void fillFADC(double E_step, double t_anod, double ll){
 
 }
 
+struct cv
+{
+    UInt_t t; // time channel
+    double v; // value
+};
+
+
+struct signal
+{
+    UInt_t status;
+    UInt_t start_bin ; // begin of signal
+    UInt_t peak_bin  ; // begin of maximum
+    UInt_t end_bin   ; // end of signal
+    UInt_t length_bin;
+    double energy    ;
+    double peak      ;
+    double start     ;
+    double end       ;
+    double base      ;
+};
+
+  struct signal s1;
+  struct signal s2;
+  struct signal s3;
+  struct signal s ;
+
+
+double avg( TH1F *h ){
+  double sum = 0;
+  for (int t = 1; t < h->GetNbinsX()+1; t++) sum += h->GetBinContent(t);
+  return ( sum / h->GetNbinsX() );
+}
+
+
+const int    WINDOW    = 10    ;
+const double THRESHOLD =  0.1  ;
+
+UInt_t check_fired( TH1F *h ){
+
+  int TRACELENGTH = h->GetNbinsX();
+  double av = avg(h);
+  cv pmin,pmax;
+  pmin.t = h->GetMinimumBin() ;
+  pmax.t = h->GetMaximumBin() ;
+  pmin.v = h->GetMinimum()    ;
+  pmax.v = h->GetMaximum()    ;
+
+  UInt_t isf = 0;
+
+  double running_sum=0;
+  for(int t=0; t<WINDOW; t++)
+    running_sum += ( h->GetBinContent(t+1)*(1./WINDOW) );
+
+  if( av-pmin.v <= pmax.v-av ){
+    for(int t=0; t < TRACELENGTH - WINDOW ; t++ ){
+      if( running_sum > av*(1.+THRESHOLD) ) isf = 1 ;
+      running_sum -= ( h->GetBinContent( t + 1              )  / WINDOW );
+      running_sum += ( h->GetBinContent( t + 1 + WINDOW + 1 )  / WINDOW );
+    }
+  return isf;
+  }
+
+  for(int t=0; t < TRACELENGTH - WINDOW ; t++ ){
+    if( running_sum < av*(1.-THRESHOLD) ) isf = 2 ;
+    running_sum -= ( h->GetBinContent( t + 1              )  / WINDOW );
+    running_sum += ( h->GetBinContent( t + 1 + WINDOW + 1 )  / WINDOW );
+  }
+  return isf;
+
+}
+
+const int    MARGIN_LEFT  = 150 ;
+const int    MARGIN_RIGHT = 150 ;
+
+double eval_base( TH1F *h ){
+
+  int TRACELENGTH = h->GetNbinsX();
+  UInt_t status = check_fired( h );
+
+  double base = 0;
+  int counted_bins = 0;
+  Int_t pos;
+
+  if( status == 0 ) return avg(h);
+  if( status == 1 ) pos = h->GetMaximumBin();
+  else              pos = h->GetMinimumBin();
+
+  int bin_low  = pos - 1 - MARGIN_LEFT  ;
+  int bin_high = pos - 1 + MARGIN_RIGHT ;
+
+  for( int t=0; t<TRACELENGTH; t++ ){
+    if( (t < bin_low) || (t > bin_high) ){
+      base += h->GetBinContent(t+1);
+      counted_bins++;
+    }
+  }
+
+ return base/counted_bins;
+
+}
+
+
+
+bool get_s( TH1F *h ){
+
+  s.start_bin=0; s.end_bin=0; s.peak=0; s.start=0; s.end=0; s.energy=0;
+  s.status = check_fired( h );
+
+  s.base = eval_base( h );
+  double base = s.base;
+
+  if( s.status!=1 ) return false;
+
+  Int_t pos = h->GetMaximumBin(); s.peak_bin=pos; s.peak = h->GetMaximum();
+
+  s.energy = s.peak - base;
+  //left
+  int t=pos-1;
+  double height = s.peak - base;
+  cv p80, p25; p80.t=0; p25.t=0; p80.v=s.peak; p25.v = base ;
+  while( h->GetBinContent(t)>base ){
+     s.energy += ( h->GetBinContent(t)-base );
+     if( ( h->GetBinContent(t)-base ) / height < 0.80 && p80.t==0 ){
+         p80.t = t ; p80.v = h->GetBinContent(t);
+     }
+     if( (h->GetBinContent(t)-base ) / height < 0.25 && p25.t==0 ){
+         p25.t = t ; p25.v = h->GetBinContent(t);
+     }
+     t--;
+  } s.start_bin = t+1;
+
+  s.start = p25.t - double(p80.t-p25.t)*double(p25.v-UInt_t( base) )/double(p80.v-p25.v);
+
+  //right
+  t=pos+1;
+  while( h->GetBinContent(t)>base ){
+     s.energy += ( h->GetBinContent(t)-base );
+     t++;
+  } s.end_bin = t-1; s.end = s.end_bin;
+
+  s.length_bin = s.end_bin - s.start_bin ;
+
+  return true;
+}
+
+
+bool get_sr( TH1F *h , int&  start_bin, int& end_bin, int& peak_bin, double& peak, double& start, double& end, double& energy, UInt_t& status, double& base){
+
+  start_bin=0; end_bin=0; peak_bin = 0;
+  peak=0; start=0; end=0; energy=0;
+  status = check_fired( h ); 
+  base = eval_base( h );
+
+  if( status!=1 ) return false;
+
+  Int_t pos = h->GetMaximumBin(); peak_bin=pos; peak = h->GetMaximum();
+
+  energy = peak - base;
+  //left
+  int t=pos-1;
+  double height = peak - base;
+  cv p80, p25; p80.t=0; p25.t=0; p80.v=peak; p25.v = base ;
+  while( h->GetBinContent(t)>base ){
+     energy += ( h->GetBinContent(t)-base );
+     if( ( h->GetBinContent(t)-base ) / height < 0.80 && p80.t==0 ){
+         p80.t = t ; p80.v = h->GetBinContent(t);
+     }
+     if( (h->GetBinContent(t)-base ) / height < 0.25 && p25.t==0 ){
+         p25.t = t ; p25.v = h->GetBinContent(t);
+     }
+     t--;
+  } start_bin = t+1;
+
+  start = p25.t - double(p80.t-p25.t)*double(p25.v- base )/double(p80.v-p25.v);
+
+  //right
+  t=pos+1;
+  while( h->GetBinContent(t)>base ){
+     energy += ( h->GetBinContent(t)-base );
+     t++;
+  } end_bin = t-1; end = end_bin;
+
+
+  return true;
+}
+
+
+
+
 void findTPCtracks(){
 
 
@@ -85,10 +274,12 @@ void findTPCtracks(){
   h3 = new TH1F("h3"," ;time, 10*ns; energy, a.u.", 2692, 0., 4.*2692. );
 
   tree = new TTree("tree", "fadc_tree");
-  TBranch *br1 = tree->Branch("h1", "TH1F", &h1, 640000, 0);
-  TBranch *br2 = tree->Branch("h2", "TH1F", &h2, 640000, 0);
-  TBranch *br3 = tree->Branch("h3", "TH1F", &h3, 640000, 0);
+  TBranch *br1 = tree->Branch("h1", "TH1F", &h1, 1280000, 0);
+  TBranch *br2 = tree->Branch("h2", "TH1F", &h2, 1280000, 0);
+  TBranch *br3 = tree->Branch("h3", "TH1F", &h3, 1280000, 0);
 
+
+  double ss1,ss2,ss3;
   int    ev, tr ;
   long int code;
   double ed;
@@ -98,6 +289,9 @@ void findTPCtracks(){
   double t_anod, tt, ll;
 
 
+  int start_bin, end_bin,  peak_bin;
+  double peak, start, end, energy, base;
+  UInt_t status;
 
 
 //==============================================================================
@@ -143,6 +337,7 @@ void findTPCtracks(){
   float xfb,yfb,zfb,tfb,ed_b;
   int tr_b,code_b;
   float noise;
+
 
   fBEAM >> ev_b >> tr_b >> code_b >> ed_b >> xib >> yib >> zib >> tib  >> xfb >> yfb >> zfb >> tfb;
 
@@ -201,6 +396,27 @@ void findTPCtracks(){
       }
 
       tree->Fill();
+
+      ss1 = get_sr(h1,start_bin, end_bin, peak_bin, peak, start, end, energy, status, base );
+
+      std::cout << start_bin << "\t"  << end_bin << "\t" << peak_bin  << "\t" << start << "\t" << end << " "<< peak << "\t"<<energy << "\t"<< status << "\t"<< base << "\n";
+
+//      ss2 = get_sr(h2,start_bin, end_bin, peak_bin, peak, start, end, energy, status, base );
+//      ss3 = get_sr(h3,start_bin, end_bin, peak_bin, peak, start, end, energy, status, base );
+
+//      ss1 = check_fired(h1);
+//      ss2 = check_fired(h2);
+//      ss3 = check_fired(h3);
+
+//      ss1 = eval_base(h1);
+//      ss2 = eval_base(h2);
+//      ss3 = eval_base(h3);
+
+      //std::cout << h1->GetMaximumBin() << "\t" << h1->GetMaximum() << "\t" << h1->GetBinContent( h1->GetMaximumBin() ) << "\n";
+      //std::cout << h1->GetMean(1) << "\t" << h1->GetMeanError(1) << "\t" << h1->GetRMS(1) << " " << h1->GetRMSError(1) << "\n";
+      //std::cout << h1->GetMaximumBin() << "\t" << h1->GetMaximum() << "\t" << av(h1) << "\n";
+      //std::cout << avg(h1) << "\t"  << eval_base(h1) << "\t" << h1->GetMinimum()  << "\t" << h1->GetMaximum() <<  "\t" << check_fired( h1 ) << "\n";
+      //std::cout          << "\t\t"  << s1.base       << "\t" << s1.peak << "\t" << s1.start  << "\t" << s1.energy << "\n";
 
       h1->Reset();
       h2->Reset();
