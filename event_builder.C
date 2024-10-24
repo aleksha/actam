@@ -108,8 +108,8 @@ double avg( TH1F *h ){
 }
 
 
-const int    WINDOW    = 10    ;
-const double THRESHOLD =  0.1  ;
+const int    WINDOW    = 20    ;
+const double THRESHOLD =  0.15  ;
 
 UInt_t check_fired( TH1F *h ){
 
@@ -235,27 +235,42 @@ bool get_sr( TH1F *h , int&  start_bin, int& end_bin, int& peak_bin, double& pea
   //left
   int t=pos-1;
   double height = peak - base;
-  cv p80, p25; p80.t=0; p25.t=0; p80.v=peak; p25.v = base ;
-  while( h->GetBinContent(t)>base && t>0){
+  cv p80, p25;
+  p80.t=0; p25.t=0; p80.v=peak; p25.v = base ;
+
+  start=0;
+//  while( h->GetBinContent(t)>base && t>start){
+  while( t>start ){
      energy += ( h->GetBinContent(t)-base );
      if( ( h->GetBinContent(t)-base ) / height < 0.80 && p80.t==0 ){
          p80.t = t ; p80.v = h->GetBinContent(t);
      }
      if( (h->GetBinContent(t)-base ) / height < 0.25 && p25.t==0 ){
          p25.t = t ; p25.v = h->GetBinContent(t);
+         start = p25.t - double(p80.t-p25.t)*double(p25.v- base )/double(p80.v-p25.v);
      }
      t--;
   } start_bin = t+1;
 
-  start = p25.t - double(p80.t-p25.t)*double(p25.v- base )/double(p80.v-p25.v);
 
   //right
   t=pos+1;
-  while( h->GetBinContent(t)>base && t<2693){
-     energy += ( h->GetBinContent(t)-base );
-     t++;
-  } end_bin = t-1; end = end_bin;
+  p80.t=0; p25.t=0; p80.v=peak; p25.v = base ;
 
+  end=2693;
+//  while( h->GetBinContent(t)>base && t<end ){
+  while( t<end ){
+     energy += ( h->GetBinContent(t)-base );
+     if( ( h->GetBinContent(t)-base ) / height < 0.80 && p80.t==0 ){
+         p80.t = t ; p80.v = h->GetBinContent(t);
+     }
+     if( (h->GetBinContent(t)-base ) / height < 0.25 && p25.t==0 ){
+         p25.t = t ; p25.v = h->GetBinContent(t);
+         end = p25.t + double(p25.t-p80.t)*double(p25.v - base )/double(p80.v-p25.v);
+//         std::cout << "  -> " << t << " - "<< p25.v <<"\t" << p80.t << " - " << p80.v << "\t" << end << "\n";
+     }
+     t++;
+  } end_bin = t-1;
 
   return true;
 }
