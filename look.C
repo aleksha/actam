@@ -11,7 +11,7 @@
   tree->SetBranchAddress("h2",&h2);
   tree->SetBranchAddress("h3",&h3);
 
-  tree->GetEntry(100);
+  tree->GetEntry(25);
 
   TCanvas* canv = new TCanvas("canv","canv",900,600);
   canv->Divide(1,3);
